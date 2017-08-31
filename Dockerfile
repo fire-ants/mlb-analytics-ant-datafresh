@@ -7,8 +7,8 @@ RUN apt-get update \
 		python \
 		sqlite3 \
 		libsqlite3-dev \
-		python-pip	
+		python-pip
 
-COPY /sql_test.R .
+COPY /01-ObtainData.R .
 
-CMD ["Rscript", "sql_test.R"]
+CMD ["Rscript", "01-ObtainData.R"]
