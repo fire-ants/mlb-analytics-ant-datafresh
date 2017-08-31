@@ -1,10 +1,12 @@
 install.packages("RSQLite")
 install.packages("dplyr")
+install.packages("dbplyr")
 install.packages("ggplot2")
 install.packages("pitchRx")
 
 library(RSQLite)
 library(dplyr)
+library(dbplyr)
 library(ggplot2)
 library(pitchRx)
 
