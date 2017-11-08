@@ -73,12 +73,10 @@ if (splitSeasonsPreviousDays > 0) {
   previousSeasonStartdate = Today - TodayYearDay - (365 - PostSeasonEndYearDay) - splitSeasonsPreviousDays
   PreviousSeasonEnddate = Today - TodayYearDay - (365 - PostSeasonEndYearDay)
   scrape(start = startdate, enddate, suffix = "inning/inning_all.xml", connect = my_dbProd$con)
+  message(sprintf("Split Season Start Date: %s", previousSeasonStartdate))
+  message(sprintf("Split Season End Date: %s", PreviousSeasonEnddate))
+  message(sprintf("Split Season days: %s", PreviousSeasonEnddate - previousSeasonStartdate))
 }
-
-message(sprintf("Split Season Start Date: %s", previousSeasonStartdate))
-message(sprintf("Split Season End Date: %s", PreviousSeasonEnddate))
-message(sprintf("Split Season days: %s", PreviousSeasonEnddate - previousSeasonStartdate))
-
 
 dbSendQuery(my_dbProd$con, "CREATE INDEX url_atbat ON atbat(url)") 
 dbSendQuery(my_dbProd$con, "CREATE INDEX url_pitch ON pitch(url)")
