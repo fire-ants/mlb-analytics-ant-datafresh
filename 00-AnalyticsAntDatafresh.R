@@ -10,7 +10,7 @@ library(dbplyr)
 library(ggplot2)
 library(pitchRx)
 
-setwd("/db")
+setwd("/root/db")
 
 filename <- "pitchRxProd.sqlite3"
 if (file.exists(filename)) file.remove(filename)
