@@ -3,6 +3,7 @@ install.packages("dplyr")
 install.packages("dbplyr")
 install.packages("ggplot2")
 install.packages("pitchRx")
+install.packages("stringr")
 
 library(RSQLite)
 library(dplyr)
