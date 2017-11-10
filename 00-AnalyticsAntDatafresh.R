@@ -10,6 +10,7 @@ library(dplyr)
 library(dbplyr)
 library(ggplot2)
 library(pitchRx)
+library(stringr)
 
 setwd("/db")
 
