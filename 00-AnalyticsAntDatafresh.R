@@ -170,29 +170,29 @@ joined.classic.pitchedit <- joined.classic %>% filter(pitch_type != c('EP','FO',
 #visna(joined.classic, tp = TRUE, col = "blue")
 
 #create subsets of pitcher stance and batter stance 
-Rh <- joined.classic %>% filter(stand == "R")
-Lh <- joined.classic %>% filter(stand == "L")
+#Rh <- joined.classic %>% filter(stand == "R")
+#Lh <- joined.classic %>% filter(stand == "L")
 
-Rpitch <- joined.classic %>% filter(p_throws == "R")
-Lpitch <- joined.classic %>% filter(p_throws =="L")
+#Rpitch <- joined.classic %>% filter(p_throws == "R")
+#Lpitch <- joined.classic %>% filter(p_throws =="L")
 
-RhRp <- Rh %>% filter(p_throws == "R")
-RhLp <- Rh %>% filter(p_throws == "L")
-LhRp <- Lh %>% filter(p_throws == "R")
-LhLp <- Lh %>% filter(p_throws == "L")
+#RhRp <- Rh %>% filter(p_throws == "R")
+#RhLp <- Rh %>% filter(p_throws == "L")
+#LhRp <- Lh %>% filter(p_throws == "R")
+#LhLp <- Lh %>% filter(p_throws == "L")
 
 #Primary Component Plots... need to update table names per above convention
 #PCP <- ggparcoord(data = joined_classic[order(joined_classic$hv_binary, decreasing = FALSE),], columns = c(40,46,30,16,17,32,88), groupColumn = "hv_binary", title = "Factors v Pitcher Outcome", alpha = .01) PCP_cat <- ggparcoord(data = joined.temp[order(joined.temp$GoodBadQual, decreasing = TRUE),], columns = c(40,46,30,32,88), groupColumn = "GoodBadQual", title = "Categorical Factors v Pitcher Outcome")
-RpRh_pcp <- ggparcoord(data = RhRp[order(RhRp$hv_binary, decreasing = FALSE),], columns = c(8,9,11,14,27,28), groupColumn = "hv_binary", title = "RpRh PCP v Pitcher Outcome")
+#RpRh_pcp <- ggparcoord(data = RhRp[order(RhRp$hv_binary, decreasing = FALSE),], columns = c(8,9,11,14,27,28), groupColumn = "hv_binary", title = "RpRh PCP v Pitcher Outcome")
 #RpLh_pcp <- ggparcoord(data = RpitchLh[order(RpitchLh$GoodBadQual, decreasing = TRUE),], columns = c(16,17,30,32,40,46,88), groupColumn = "GoodBadQual", title = "RpLh PCP v Pitcher Outcome")
 #LpRh_pcp <- ggparcoord(data = LpitchRh[order(LpitchRh$GoodBadQual, decreasing = TRUE),], columns = c(16,17,30,32,40,46,88), groupColumn = "GoodBadQual", title = "LpRh PCP v Pitcher Outcome")
 #LpLh_pcp <- ggparcoord(data = LpitchLh[order(LpitchLh$GoodBadQual, decreasing = TRUE),], columns = c(16,17,30,32,40,46,88), groupColumn = "GoodBadQual", title = "LpLh PCP v Pitcher Outcome")
 
 #create data for Swinging Strikes outside the strike zone. 
-SS_NonSZ_Rh <- Rpitch %>% filter (des == "Swinging Strike" & zone == c(11,12,13,14))
-SS_NonSZ_Lh <- Lpitch %>% filter (des == "Swinging Strike" & zone == c(11,12,13,14))
+#SS_NonSZ_Rh <- Rpitch %>% filter (des == "Swinging Strike" & zone == c(11,12,13,14))
+#SS_NonSZ_Lh <- Lpitch %>% filter (des == "Swinging Strike" & zone == c(11,12,13,14))
 
 #export features of interest, with hv_binary label 1 if <0, else 0
-var.interest <- joined.classic.pitchedit %>% select(3,5,6,8:13,16,18,22,27:28,31)
-write.csv(var.interest, file = paste(format(Sys.Date(), "HVal-%Y-%m-%d"), "csv", sep = "."))
-
+var.interest <- joined.classic.pitchedit %>% select(3,5,6,8:13,16,18,22,27:29)
+#write.csv(var.interest, file = paste(format(Sys.Date(), "HVal-%Y-%m-%d"), "csv", sep = "."))
+write.csv(var.interest, file = "rawdata_ML.csv")
