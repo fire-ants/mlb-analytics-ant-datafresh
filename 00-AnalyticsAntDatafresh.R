@@ -54,7 +54,7 @@ if (TodayYearDay <= PostSeasonEndYearDay) {  # is it before the end of the Post 
   
 } else  {         # it is After Post Season Or Later at the end of the year
   print("It is After post season toward the end of the year")
-  startdate = Today - (TodayYearDay - SeasonEndYearDay) - 120
+  startdate = Today - (TodayYearDay - SeasonEndYearDay) - 90
   enddate = Today - (TodayYearDay - SeasonEndYearDay)
   splitSeasonsPreviousDays = 0
 } 
