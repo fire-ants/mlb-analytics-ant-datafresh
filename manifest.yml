@@ -1,0 +1,7 @@
+applications:
+  - name: mlb-datafresh
+CF_STARTUP_TIMEOUT: 20
+buildpack: git://github.com/wjjung317/heroku-buildpack-r.git
+command: Rscript mlb-datafresh.r
+instances: 1
+memory: 256M
