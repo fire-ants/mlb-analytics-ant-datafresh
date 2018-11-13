@@ -6,3 +6,20 @@ resources:
     branch: ((git-branch))
     private_key: ((git-private-key))
 jobs: 
+- name: build
+  plan:
+    - aggregate:
+      - get: mlb-datafresh
+        resource: mlb-datafresh
+        trigger: true
+    - task: list_directory
+      file: mlb-datafresh/ci/tasks/list_directory.yml
+      params:
+        AUTH_USER: ((auth_user))
+        AUTH_PASS: ((auth_pass))
+    - put: pcf-prod
+      params:
+        manifest: recipes-docs/manifest.yml
+        path: recipes-docs
+        current_app_name: app0cookbook
+        show_app_log: true
