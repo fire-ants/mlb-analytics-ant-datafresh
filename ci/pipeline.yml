@@ -27,7 +27,6 @@ jobs:
       params:
         manifest: mlb-datafresh/manifest.yml
         path: mlb-datafresh
-        current_app_name: MLB-DatafreshAnt
         show_app_log: true
 - name: run_datafresh
   plan: 
