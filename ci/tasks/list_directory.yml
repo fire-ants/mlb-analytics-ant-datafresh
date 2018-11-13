@@ -1,0 +1,16 @@
+platform: linux
+
+image_resource:
+  type: docker-image
+  source:
+    repository: busybox
+    tag: 1.29.3
+
+inputs:
+- name: mlb-datafresh
+
+# outputs:
+# - name: 
+
+run:
+  path: mlb-datafresh/ci/tasks/list_directory.sh
