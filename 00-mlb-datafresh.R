@@ -1,6 +1,7 @@
 library(pitchRx)
 library(dplyr)
 library(dbplyr)
+library(stringr)
 
 cat("R program running")
 
@@ -8,7 +9,7 @@ names(s <- Sys.getenv())
 #print(Sys.getenv("mlb_db_hostname"))
 
 my_db <- src_mysql(dbname = Sys.getenv("mlb_db_dbname"), host=Sys.getenv("mlb_db_hostname"), port = 3306, user = Sys.getenv("mlb_db_username"), password = Sys.getenv("mlb_db_password")) 
-scrape(start = "2018-04-02", end = "2018-04-08", suffix = "inning/inning_all.xml", connect = my_db$con)
+#scrape(start = "2018-04-02", end = "2018-04-08", suffix = "inning/inning_all.xml", connect = my_db$con)
 
 ### Load pitch and atbat data frames
 pitchesDF <- select(tbl(my_db, "pitch"), gameday_link, num, des, type, tfs, tfs_zulu, id, end_speed, pitch_type, count, zone)
