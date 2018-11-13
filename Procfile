@@ -1,1 +1,1 @@
-web: pwd
+Command: pwd
