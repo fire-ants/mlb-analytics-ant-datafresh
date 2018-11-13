@@ -23,8 +23,8 @@ jobs:
         trigger: true
     - task: list_directory
       file: mlb-datafresh/ci/tasks/list_directory.yml
--   put: pcf-prod
-    params:
+    - put: pcf-prod
+      params:
         manifest: mlb-datafresh/manifest.yml
         path: mlb-datafresh
         current_app_name: MLB-DatafreshAnt
