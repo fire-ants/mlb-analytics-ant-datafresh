@@ -5,6 +5,15 @@ resources:
     uri: git@github.com:fire-ants/mlb-analytics-ant-datafresh.git
     branch: ((git-branch))
     private_key: ((git-private-key))
+- name: pcf-prod
+  type: cf
+  source:
+    api: api.run.pivotal.io
+    organization: EVP
+    space: dell-fire-ants
+    username: ((cf-username))
+    password: ((cf-password))
+    skip_cert_check: false
 jobs: 
 - name: build
   plan:
@@ -14,3 +23,9 @@ jobs:
         trigger: true
     - task: list_directory
       file: mlb-datafresh/ci/tasks/list_directory.yml
+    - put: pcf-prod
+      params:
+        manifest: mlb-datafresh/manifest.yml
+        path: mlb-datafresh
+        current_app_name: MLB-DatafreshAnt
+        show_app_log: true

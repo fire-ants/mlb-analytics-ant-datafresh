@@ -2,6 +2,8 @@
 applications:
 - name: MLB-DatafreshAnt
   instances: 1
-  buildpacks:
-  - https://github.com/cloudfoundry/r-buildpack.git
+  buildpack: https://github.com/cloudfoundry/r-buildpack.git
   health-check-type: none
+  command: tail -f /dev/null
+  no-route: true
+  

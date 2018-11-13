@@ -1,2 +1,4 @@
 git-branch: master
-git-private-key:
+git-private-key: 
+cf-username:
+cf-password: 
