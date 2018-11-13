@@ -34,7 +34,7 @@ jobs:
     - get: mlb-datafresh
       resource: mlb-datafresh
     - task: run_datafresh
-      file: mlb-datarefresh/ci/tasks/run_datafresh.yml
+      file: mlb-datafresh/ci/tasks/run_datafresh.yml
       params:
         CF_USER: ((cf-username))
         CF_PASSWORD: ((cf-password))
