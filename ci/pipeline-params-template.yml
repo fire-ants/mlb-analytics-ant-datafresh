@@ -2,3 +2,5 @@ git-branch: master
 git-private-key: 
 cf-username:
 cf-password: 
+cf-org: 
+cf-space: 
