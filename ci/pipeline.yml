@@ -9,8 +9,8 @@ resources:
   type: cf
   source:
     api: api.run.pivotal.io
-    organization: EVP
-    space: dell-fire-ants
+    organization: ((cf-org))
+    space: ((cf-space))
     username: ((cf-username))
     password: ((cf-password))
     skip_cert_check: false
@@ -27,5 +27,22 @@ jobs:
       params:
         manifest: mlb-datafresh/manifest.yml
         path: mlb-datafresh
-        current_app_name: MLB-DatafreshAnt
         show_app_log: true
+        environment_variables:
+            mlb_db_dbname: ((mlb_db_dbname))
+            mlb_db_hostname: ((mlb_db_hostname))
+            mlb_db_port: ((mlb_db_port))
+            mlb_db_username: ((mlb_db_username))
+            mlb_db_password: ((mlb_db_password))
+
+- name: run_datafresh
+  plan: 
+    - get: mlb-datafresh
+      resource: mlb-datafresh
+    - task: run_datafresh
+      file: mlb-datafresh/ci/tasks/run_datafresh.yml
+      params:
+        CF_USER: ((cf-username))
+        CF_PASSWORD: ((cf-password))
+        CF_ORG: ((cf-org))
+        CF_SPACE: ((cf-space))
