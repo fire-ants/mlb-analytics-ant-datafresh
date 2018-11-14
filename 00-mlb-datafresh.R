@@ -1,3 +1,4 @@
+library(DBI)
 library(pitchRx)
 library(dplyr)
 library(dbplyr)
