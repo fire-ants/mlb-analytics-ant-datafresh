@@ -37,3 +37,4 @@ vignettes/*.pdf
 *.sqlite3
 .Rproj.user
 ci/pipeline-params.yml
+pipeline-params.yml
