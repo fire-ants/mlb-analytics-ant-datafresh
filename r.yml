@@ -5,8 +5,9 @@ packages:
     - name: hexbin
     - name: XML2R
     - name: DBI
-    - name: dplyr
+    - name: RMySQL
     - name: dbplyr
+    - name: dplyr
     - name: MASS
     - name: mgcv
     - name: stringr

@@ -1,4 +1,5 @@
 library(DBI)
+library(RMySQL)
 library(pitchRx)
 library(dplyr)
 library(dbplyr)
@@ -6,15 +7,32 @@ library(stringr)
 
 cat("R program running")
 
-names(s <- Sys.getenv())
+#names(s <- Sys.getenv())
 #print(Sys.getenv("mlb_db_hostname"))
 
-my_db <- src_mysql(dbname = Sys.getenv("mlb_db_dbname"), host=Sys.getenv("mlb_db_hostname"), port = 3306, user = Sys.getenv("mlb_db_username"), password = Sys.getenv("mlb_db_password")) 
-#scrape(start = "2018-04-02", end = "2018-04-08", suffix = "inning/inning_all.xml", connect = my_db$con)
+cat("R program running: opening connections to DB")
+
+#connection used by pitchrx scrape function via dbply/dplyr
+my_pitchrx_db <- src_mysql(dbname = Sys.getenv("mlb_db_dbname"), host = Sys.getenv("mlb_db_hostname"), port = 3306, user = Sys.getenv("mlb_db_username"), password = Sys.getenv("mlb_db_password"))
+
+# connection used by DBI::dbWriteTable() to write new dataframe to MYSQL database
+my_dbi_db <- DBI::dbConnect(RMySQL::MySQL(), 
+                      host = Sys.getenv("mlb_db_hostname"),
+                      dbname = Sys.getenv("mlb_db_dbname"),
+                      user = Sys.getenv("mlb_db_username"),
+                      password = Sys.getenv("mlb_db_password")
+)
+
+# cat("R program running: running PitchRx MLB scrape function")
+# scrape(start = "2018-04-02", end = "2018-04-08", suffix = "inning/inning_all.xml", connect = my_db$con)
+# when we are finished with our connection used by the scrape funtion - clean up per Hadley Wickham -> https://github.com/tidyverse/dplyr/issues/950
+# rm(my_pitchrx_db)
+
+cat("R program running: pulling pitch and atbat dataframes from database")
 
 ### Load pitch and atbat data frames
-pitchesDF <- select(tbl(my_db, "pitch"), gameday_link, num, des, type, tfs, tfs_zulu, id, end_speed, pitch_type, count, zone)
-atbatsDF <- select(tbl(my_db, "atbat"), gameday_link, num, pitcher, batter, b_height, pitcher_name, p_throws, batter_name, stand, atbat_des, event, inning, inning_side)
+pitchesDF <- select(tbl(my_pitchrx_db, "pitch"), gameday_link, num, des, type, tfs, tfs_zulu, id, end_speed, pitch_type, count, zone)
+atbatsDF <- select(tbl(my_pitchrx_db, "atbat"), gameday_link, num, pitcher, batter, b_height, pitcher_name, p_throws, batter_name, stand, atbat_des, event, inning, inning_side)
 
 get_quant_score <- function(des) {
     score <- (
@@ -56,8 +74,13 @@ fix_quant_score <- function(event) {
     )
     return(score)
 }
+
+cat("R program running: performing inner join on pitch and atbat data")
+
 # join filtered atbats to all pitches
 pitchesJoin <- collect(inner_join(pitchesDF, atbatsDF))
+
+cat("R program running: applying propriatory scoring methods")
 
 # score Qual and Quant mutate
 joined <- pitchesJoin %>% mutate(quant_score_des = get_quant_score(des),
@@ -65,6 +88,8 @@ joined <- pitchesJoin %>% mutate(quant_score_des = get_quant_score(des),
                                  quant_score = quant_score_des + fix_quant_score,
                                  qual_score = get_qual_score(atbat_des) * (type == 'X'),
                                  hitter_val = quant_score + qual_score)
+
+cat("R program running: pre-processing data for machine learning")
 
 # convert to factor variables
 joined$pitch_type <- as.factor(joined$pitch_type) 
@@ -124,10 +149,10 @@ var.interest <- joined.classic.pitchedit %>% select(3,5,6,8:13,16,18,22,27:29)
 #write.csv(var.interest, file = paste(format(Sys.Date(), "HVal-%Y-%m-%d"), "csv", sep = "."))
 #write.csv(var.interest, file = "rawdata_ML.csv")
 
-dbWriteTable(my_db, "rawdata_ML", value = var.interest, overwrite = TRUE)
+cat("R program running: storing results in database")
 
-
-
+DBI::dbWriteTable(my_dbi_db, "rawdata_ML", var.interest, overwrite = TRUE)
+dbDisconnect(my_dbi_db)
 
 #sql_command <- paste("UPDATE pg_settings SET setting =", Sys.Date(), "WHERE name = 'latest_date'")
 #dbGetQuery(con, sql_command)
