@@ -4,6 +4,7 @@ packages:
     packages:
     - name: hexbin
     - name: XML2R
+    - name: DBI
     - name: dplyr
     - name: dbplyr
     - name: MASS
