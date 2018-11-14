@@ -17,7 +17,7 @@ params:
 # - name:
 
 run:
-  path: sh
+  path: /bin/bash
   args:
     - -exc
     - |
