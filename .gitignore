@@ -36,4 +36,7 @@ vignettes/*.pdf
 .sqlite3
 *.sqlite3
 .Rproj.user
+
+# pcf credentials
+pipeline-params.yml
 ci/pipeline-params.yml
