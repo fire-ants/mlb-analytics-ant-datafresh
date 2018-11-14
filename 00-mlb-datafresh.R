@@ -28,6 +28,18 @@ my_dbi_db <- DBI::dbConnect(RMySQL::MySQL(),
 # when we are finished with our connection used by the scrape funtion - clean up per Hadley Wickham -> https://github.com/tidyverse/dplyr/issues/950
 # rm(my_pitchrx_db)
 
+# start <- as.Date("06-01-18",format="%m-%d-%y")
+# end   <- as.Date("06-30-18",format="%m-%d-%y")
+
+# dates <- seq(start, end, by="day")
+
+# for(di in as.list(dates)) {
+#   my_pitchrx_db <- src_mysql(dbname = Sys.getenv("mlb_db_dbname"), host = Sys.getenv("mlb_db_hostname"), port = 3306, user = Sys.getenv("mlb_db_username"), password = Sys.getenv("mlb_db_password"))
+#   scrape(start = format(di,"%Y-%m-%d"), end = format(di,"%Y-%m-%d"), suffix = "inning/inning_all.xml", connect = my_pitchrx_db$con)
+#   rm(my_db)
+# }
+
+
 cat("R program running: pulling pitch and atbat dataframes from database")
 
 ### Load pitch and atbat data frames
