@@ -57,8 +57,10 @@ for(di in as.list(dates)) {
 cat("R program running: pulling pitch and atbat dataframes from database")
 
 ### Load pitch and atbat data frames
+my_scrape_db <- src_mysql(dbname = Sys.getenv("mlb_db_scrape"), host = Sys.getenv("mlb_db_hostname"), port = 3306, user = Sys.getenv("mlb_db_username"), password = Sys.getenv("mlb_db_password"))
 pitchesDF <- select(tbl(my_scrape_db, "pitch"), gameday_link, num, des, type, tfs, tfs_zulu, id, end_speed, pitch_type, count, zone)
 atbatsDF <- select(tbl(my_scrape_db, "atbat"), gameday_link, num, pitcher, batter, b_height, pitcher_name, p_throws, batter_name, stand, atbat_des, event, inning, inning_side)
+rm(my_scrape_db)
 
 get_quant_score <- function(des) {
     score <- (
