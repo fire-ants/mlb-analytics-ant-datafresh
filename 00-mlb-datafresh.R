@@ -25,28 +25,27 @@ my_dbi_db <- DBI::dbConnect(RMySQL::MySQL(),
 
 
 # cat("R program running: running PitchRx MLB scrape function")
-# scrape(start = "2018-04-02", end = "2018-04-08", suffix = "inning/inning_all.xml", connect = my_db$con)
+# scrape(start = "2018-04-02", end = "2018-04-08", suffix = "inning/inning_all.xml", connect = my_pitchrx_db$con)
 # when we are finished with our connection used by the scrape funtion - clean up per Hadley Wickham -> https://github.com/tidyverse/dplyr/issues/950
 # rm(my_pitchrx_db)
 
 # we can dynamically pull the last day of data that was retrieved
 # and start on the next date
-# last_date <- dbGetQuery(wcon, "SELECT MAX(date) AS \"Max Date\" FROM atbat")
-# start = as.Date(str_replace_all(last_date, "_", "-")) + 1
-
+# last_stored_date <- dbGetQuery(my_dbi_db, "SELECT MAX(date) AS \"Max Date\" FROM atbat")
+# start = as.Date(str_replace_all(last_stored_date, "_", "-")) + 1
 # end today, maybe
 # end = Sys.Date()
 
-# start <- as.Date("06-01-18",format="%m-%d-%y")
-# end   <- as.Date("06-30-18",format="%m-%d-%y")
+start <- as.Date("03-29-18",format="%m-%d-%y")
+end   <- as.Date("04-08-18",format="%m-%d-%y")
 
-# dates <- seq(start, end, by="day")
+dates <- seq(start, end, by="day")
 
-# for(di in as.list(dates)) {
-#   my_pitchrx_db <- src_mysql(dbname = Sys.getenv("mlb_db_dbname"), host = Sys.getenv("mlb_db_hostname"), port = 3306, user = Sys.getenv("mlb_db_username"), password = Sys.getenv("mlb_db_password"))
-#   try(scrape(start = format(di,"%Y-%m-%d"), end = format(di,"%Y-%m-%d"), suffix = "inning/inning_all.xml", connect = my_pitchrx_db$con))
-#   rm(my_db)
-# }
+for(di in as.list(dates)) {
+  my_pitchrx_db <- src_mysql(dbname = Sys.getenv("mlb_db_dbname"), host = Sys.getenv("mlb_db_hostname"), port = 3306, user = Sys.getenv("mlb_db_username"), password = Sys.getenv("mlb_db_password"))
+  try(scrape(start = format(di,"%Y-%m-%d"), end = format(di,"%Y-%m-%d"), suffix = "inning/inning_all.xml", connect = my_pitchrx_db$con))
+  rm(my_db)
+}
 
 
 cat("R program running: pulling pitch and atbat dataframes from database")
@@ -172,6 +171,7 @@ var.interest <- joined.classic.pitchedit %>% select(3,5,6,8:13,16,18,22,27:29)
 
 cat("R program running: storing results in database")
 
+DBI::dbWriteTable(my_dbi_db, "rawdata_joined", joined.classic.pitchedit, overwrite = TRUE)
 DBI::dbWriteTable(my_dbi_db, "rawdata_ML", var.interest, overwrite = TRUE)
 dbDisconnect(my_dbi_db)
 
