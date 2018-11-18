@@ -191,9 +191,11 @@ DBI::dbWriteTable(my_mlb_db, "rawdata_ML", var.interest, append = TRUE)
 DBI::dbWriteTable(my_mlb_db, "atbat", atbat_untouched, append = TRUE)
 DBI::dbWriteTable(my_mlb_db, "pitch", pitch_untouched, append = TRUE)
 
-#close open database connections
+# Close open database connections
+# dbDisconnect for DBI connection
 dbDisconnect(my_mlb_db)
-dbDisconnect(my_scrape_db)
+# RM for DPLYR connection
+rm(my_scrape_db)
 
 # we have all the MLB data we want for this ingest period.  Clean up / wipe the scrape databse - so we have a clean next run
 
