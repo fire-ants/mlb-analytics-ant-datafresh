@@ -103,11 +103,12 @@ cat("R program running: pulling pitch and atbat dataframes from database")
 ### Load pitch and atbat data frames
 my_scrape_db <- src_mysql(dbname = Sys.getenv("mlb_db_scrape"), host = Sys.getenv("mlb_db_hostname"), port = 3306, user = Sys.getenv("mlb_db_username"), password = Sys.getenv("mlb_db_password"))
 
-# These queries are run when dataframes are used.  not right now... don't close connections until your done with the data.
-pitchesDF <- select(tbl(my_scrape_db, "pitch"), gameday_link, num, des, type, tfs, tfs_zulu, id, end_speed, pitch_type, count, zone)
-atbatsDF <- select(tbl(my_scrape_db, "atbat"), gameday_link, date, num, pitcher, batter, b_height, pitcher_name, p_throws, batter_name, stand, atbat_des, event, inning, inning_side)
-atbat_untouched <- tbl(my_scrape_db, "atbat")
-pitch_untouched <- tbl(my_scrape_db, "pitch")
+# don't close connections until your done with the data.  use %>% collect() to run the queries now, otherwise, queries are ececuted later when dataframe objects are used
+# %>% collect() this actually runs the queries and stores the data in the data frame
+pitchesDF <- select(tbl(my_scrape_db, "pitch"), gameday_link, num, des, type, tfs, tfs_zulu, id, end_speed, pitch_type, count, zone) %>% collect()
+atbatsDF <- select(tbl(my_scrape_db, "atbat"), gameday_link, date, num, pitcher, batter, b_height, pitcher_name, p_throws, batter_name, stand, atbat_des, event, inning, inning_side) %>% collect()
+atbat_untouched <- tbl(my_scrape_db, "atbat") %>% collect()
+pitch_untouched <- tbl(my_scrape_db, "pitch") %>% collect()
 
 cat("R program running: performing inner join on pitch and atbat data")
 
