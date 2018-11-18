@@ -127,7 +127,8 @@ dbGetQuery(my_scrape_db, "DROP TABLE IF EXISTS runner")
 dbGetQuery(my_scrape_db, "DROP TABLE IF EXISTS po")
 dbGetQuery(my_scrape_db, "DROP TABLE IF EXISTS atbat")
 
-cat("R program running: data loaded into memory - scape database tables dropped"
+cat("R program running: data loaded into memory - scape database tables dropped")
+dbListTables(my_scrape_db)
 dbDisconnect(my_scrape_db)
 
 ###
