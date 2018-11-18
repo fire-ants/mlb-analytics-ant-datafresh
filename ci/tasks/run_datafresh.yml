@@ -30,6 +30,6 @@ run:
       echo ${RUNNING}
       echo ${LOGS}
       RUNNING=$(cf tasks MLB-DatafreshAnt | grep "$taskname" | grep 'RUNNING')
-      LOGS=$(cf logs MLB-DatafreshAnt | grep "$taskname" | tail -n20)
+      LOGS=$(cf logs MLB-DatafreshAnt --recent | grep "$taskname" | tail -n20)
       done
       echo done processing

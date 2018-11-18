@@ -118,7 +118,8 @@ my_scrape_db <- DBI::dbConnect(RMySQL::MySQL(),
 )
 
 cat("R program running: data loaded into memory - wiping scape database")
-dbGetQuery(my_scrape_db, "SHOW TABLES")
+#dbGetQuery(my_scrape_db, "SHOW TABLES")
+dbListTables(my_scrape_db)
 
 dbGetQuery(my_scrape_db, "DROP TABLE IF EXISTS pitch")
 dbGetQuery(my_scrape_db, "DROP TABLE IF EXISTS action")
@@ -127,8 +128,7 @@ dbGetQuery(my_scrape_db, "DROP TABLE IF EXISTS po")
 dbGetQuery(my_scrape_db, "DROP TABLE IF EXISTS atbat")
 
 cat("R program running: data loaded into memory - scape database tables dropped"
-
-dbGetQuery(my_scrape_db, "SHOW TABLES")
+dbListTables(my_scrape_db)
 dbDisconnect(my_scrape_db)
 
 ###
