@@ -5,6 +5,51 @@ library(dplyr)
 library(dbplyr)
 library(stringr)
 
+## Functions at Top
+
+get_quant_score <- function(des) {
+    score <- (
+        as.integer(str_detect(des, "Called Strike")) * -(1/3) +
+            as.integer(str_detect(des, "Foul")) * -(1/3) +
+            as.integer(str_detect(des, "In play, run")) * 1.0 +
+            as.integer(str_detect(des, "In play, out")) * -1.0 +
+            as.integer(str_detect(des, "In play, no out")) * 1.0 +
+            as.integer(str_detect(des, "^Ball$")) * 0.25 +
+            as.integer(str_detect(des, "Swinging Strike")) * -(1/2.5) +
+            as.integer(str_detect(des, "Hit By Pitch")) * 1.0 +
+            as.integer(str_detect(des, "Ball In Dirt")) * 0.25 +
+            as.integer(str_detect(des, "Missed Bunt")) * -(1/3) +
+            as.integer(str_detect(des, "Intent Ball")) * 0.25
+    )
+    return(score)
+}
+get_qual_score <- function(des) {
+    score <- (
+        as.integer(str_detect(des, "homer")) * 2 +
+            as.integer(str_detect(des, "line")) * 1.5 +
+            as.integer(str_detect(des, "sharp")) * 1.5 +
+            as.integer(str_detect(des, "grounds")) * -1 +
+            as.integer(str_detect(des, "flies")) * -1 +
+            as.integer(str_detect(des, "soft")) * -2 +
+            as.integer(str_detect(des, "pop")) * -2 +
+            as.integer(str_detect(des, "triples")) * 1.5 +
+            as.integer(str_detect(des, "doubles")) * 1.0 +
+            as.integer(str_detect(des, "error")) * 0.5
+    )
+    return(score)
+}
+
+fix_quant_score <- function(event) {
+    score <- (
+        as.integer(str_detect(event, "Groundout")) * -2 +
+            as.integer(str_detect(event, "Forceout")) * -2 +
+            as.integer(str_detect(event, "Field Error")) * -2 
+    )
+    return(score)
+}
+
+## End of Functions
+
 cat("R program running")
 
 #names(s <- Sys.getenv())
@@ -59,50 +104,34 @@ cat("R program running: pulling pitch and atbat dataframes from database")
 my_scrape_db <- src_mysql(dbname = Sys.getenv("mlb_db_scrape"), host = Sys.getenv("mlb_db_hostname"), port = 3306, user = Sys.getenv("mlb_db_username"), password = Sys.getenv("mlb_db_password"))
 pitchesDF <- select(tbl(my_scrape_db, "pitch"), gameday_link, num, des, type, tfs, tfs_zulu, id, end_speed, pitch_type, count, zone)
 atbatsDF <- select(tbl(my_scrape_db, "atbat"), gameday_link, date, num, pitcher, batter, b_height, pitcher_name, p_throws, batter_name, stand, atbat_des, event, inning, inning_side)
-atbat_untouched <- select(tbl(my_scrape_db, "atbat"))
-pitch_untouched <- select(tbl(my_scrape_db, "pitch"))
+atbat_untouched <- tbl(my_scrape_db, "atbat")
+pitch_untouched <- tbl(my_scrape_db, "pitch")
 rm(my_scrape_db)
 
-get_quant_score <- function(des) {
-    score <- (
-        as.integer(str_detect(des, "Called Strike")) * -(1/3) +
-            as.integer(str_detect(des, "Foul")) * -(1/3) +
-            as.integer(str_detect(des, "In play, run")) * 1.0 +
-            as.integer(str_detect(des, "In play, out")) * -1.0 +
-            as.integer(str_detect(des, "In play, no out")) * 1.0 +
-            as.integer(str_detect(des, "^Ball$")) * 0.25 +
-            as.integer(str_detect(des, "Swinging Strike")) * -(1/2.5) +
-            as.integer(str_detect(des, "Hit By Pitch")) * 1.0 +
-            as.integer(str_detect(des, "Ball In Dirt")) * 0.25 +
-            as.integer(str_detect(des, "Missed Bunt")) * -(1/3) +
-            as.integer(str_detect(des, "Intent Ball")) * 0.25
-    )
-    return(score)
-}
-get_qual_score <- function(des) {
-    score <- (
-        as.integer(str_detect(des, "homer")) * 2 +
-            as.integer(str_detect(des, "line")) * 1.5 +
-            as.integer(str_detect(des, "sharp")) * 1.5 +
-            as.integer(str_detect(des, "grounds")) * -1 +
-            as.integer(str_detect(des, "flies")) * -1 +
-            as.integer(str_detect(des, "soft")) * -2 +
-            as.integer(str_detect(des, "pop")) * -2 +
-            as.integer(str_detect(des, "triples")) * 1.5 +
-            as.integer(str_detect(des, "doubles")) * 1.0 +
-            as.integer(str_detect(des, "error")) * 0.5
-    )
-    return(score)
-}
+# we have all the MLB data we want for this ingest period.  Clean up / wipe the scrape databse - so we have a clean next run
 
-fix_quant_score <- function(event) {
-    score <- (
-        as.integer(str_detect(event, "Groundout")) * -2 +
-            as.integer(str_detect(event, "Forceout")) * -2 +
-            as.integer(str_detect(event, "Field Error")) * -2 
-    )
-    return(score)
-}
+my_scrape_db <- DBI::dbConnect(RMySQL::MySQL(), 
+                      host = Sys.getenv("mlb_db_hostname"),
+                      dbname = Sys.getenv("mlb_db_scrape"),
+                      user = Sys.getenv("mlb_db_username"),
+                      password = Sys.getenv("mlb_db_password")
+)
+
+cat("R program running: data loaded into memory - wiping scape database")
+dbGetQuery(my_scrape_db, "SHOW TABLES")
+
+dbGetQuery(my_scrape_db, "DROP TABLE IF EXISTS pitch")
+dbGetQuery(my_scrape_db, "DROP TABLE IF EXISTS action")
+dbGetQuery(my_scrape_db, "DROP TABLE IF EXISTS runner")
+dbGetQuery(my_scrape_db, "DROP TABLE IF EXISTS po")
+dbGetQuery(my_scrape_db, "DROP TABLE IF EXISTS atbat")
+
+cat("R program running: data loaded into memory - scape database tables dropped"
+
+dbGetQuery(my_scrape_db, "SHOW TABLES")
+dbDisconnect(my_scrape_db)
+
+###
 
 cat("R program running: performing inner join on pitch and atbat data")
 

@@ -26,8 +26,10 @@ run:
       RUNNING=$(cf tasks MLB-DatafreshAnt | grep "$taskname" | grep 'RUNNING')
       echo ${RUNNING}
       while [[ ${RUNNING} ]] ; do
-      sleep 10
+      sleep 30
       echo ${RUNNING}
+      echo ${LOGS}
       RUNNING=$(cf tasks MLB-DatafreshAnt | grep "$taskname" | grep 'RUNNING')
+      LOGS=$(cf logs MLB-DatafreshAnt | grep "$taskname" | tail -n20)
       done
       echo done processing
