@@ -102,36 +102,12 @@ cat("R program running: pulling pitch and atbat dataframes from database")
 
 ### Load pitch and atbat data frames
 my_scrape_db <- src_mysql(dbname = Sys.getenv("mlb_db_scrape"), host = Sys.getenv("mlb_db_hostname"), port = 3306, user = Sys.getenv("mlb_db_username"), password = Sys.getenv("mlb_db_password"))
+
+# These queries are run when dataframes are used.  not right now... don't close connections until your done with the data.
 pitchesDF <- select(tbl(my_scrape_db, "pitch"), gameday_link, num, des, type, tfs, tfs_zulu, id, end_speed, pitch_type, count, zone)
 atbatsDF <- select(tbl(my_scrape_db, "atbat"), gameday_link, date, num, pitcher, batter, b_height, pitcher_name, p_throws, batter_name, stand, atbat_des, event, inning, inning_side)
 atbat_untouched <- tbl(my_scrape_db, "atbat")
 pitch_untouched <- tbl(my_scrape_db, "pitch")
-rm(my_scrape_db)
-
-# we have all the MLB data we want for this ingest period.  Clean up / wipe the scrape databse - so we have a clean next run
-
-my_scrape_db <- DBI::dbConnect(RMySQL::MySQL(), 
-                      host = Sys.getenv("mlb_db_hostname"),
-                      dbname = Sys.getenv("mlb_db_scrape"),
-                      user = Sys.getenv("mlb_db_username"),
-                      password = Sys.getenv("mlb_db_password")
-)
-
-cat("R program running: data loaded into memory - wiping scape database")
-#dbGetQuery(my_scrape_db, "SHOW TABLES")
-dbListTables(my_scrape_db)
-
-dbGetQuery(my_scrape_db, "DROP TABLE IF EXISTS pitch")
-dbGetQuery(my_scrape_db, "DROP TABLE IF EXISTS action")
-dbGetQuery(my_scrape_db, "DROP TABLE IF EXISTS runner")
-dbGetQuery(my_scrape_db, "DROP TABLE IF EXISTS po")
-dbGetQuery(my_scrape_db, "DROP TABLE IF EXISTS atbat")
-
-cat("R program running: data loaded into memory - scape database tables dropped")
-dbListTables(my_scrape_db)
-dbDisconnect(my_scrape_db)
-
-###
 
 cat("R program running: performing inner join on pitch and atbat data")
 
@@ -213,4 +189,30 @@ DBI::dbWriteTable(my_mlb_db, "rawdata_joined", joined.classic.pitchedit, append 
 DBI::dbWriteTable(my_mlb_db, "rawdata_ML", var.interest, append = TRUE)
 DBI::dbWriteTable(my_mlb_db, "atbat", atbat_untouched, append = TRUE)
 DBI::dbWriteTable(my_mlb_db, "pitch", pitch_untouched, append = TRUE)
+
+#close open database connections
 dbDisconnect(my_mlb_db)
+dbDisconnect(my_scrape_db)
+
+# we have all the MLB data we want for this ingest period.  Clean up / wipe the scrape databse - so we have a clean next run
+
+my_scrape_db_dbi <- DBI::dbConnect(RMySQL::MySQL(), 
+                      host = Sys.getenv("mlb_db_hostname"),
+                      dbname = Sys.getenv("mlb_db_scrape"),
+                      user = Sys.getenv("mlb_db_username"),
+                      password = Sys.getenv("mlb_db_password")
+)
+
+cat("R program running: data loaded into memory - wiping scape database")
+#dbGetQuery(my_scrape_db, "SHOW TABLES")
+dbListTables(my_scrape_db_dbi)
+
+dbGetQuery(my_scrape_db_dbi, "DROP TABLE IF EXISTS pitch")
+dbGetQuery(my_scrape_db_dbi, "DROP TABLE IF EXISTS action")
+dbGetQuery(my_scrape_db_dbi, "DROP TABLE IF EXISTS runner")
+dbGetQuery(my_scrape_db_dbi, "DROP TABLE IF EXISTS po")
+dbGetQuery(my_scrape_db_dbi, "DROP TABLE IF EXISTS atbat")
+
+cat("R program running: data loaded into memory - scape database tables dropped")
+dbListTables(my_scrape_db_dbi)
+dbDisconnect(my_scrape_db_dbi)
