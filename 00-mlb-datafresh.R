@@ -76,8 +76,10 @@ my_mlb_db <- DBI::dbConnect(RMySQL::MySQL(),
 
 # we can dynamically pull the last day of data that was retrieved
 # and start on the next date
-last_stored_date <- dbGetQuery(my_mlb_db, "SELECT MAX(date) AS \"Max Date\" FROM atbat")
+
+last_stored_date <- dbGetQuery(my_mlb_db, "SELECT MAX(date) AS \"Max Date\" FROM rawdata_joined")
 start = as.Date(str_replace_all(last_stored_date, "_", "-")) + 1
+
 # end today, maybe
 # end = Sys.Date()
 
@@ -107,8 +109,8 @@ my_scrape_db <- src_mysql(dbname = Sys.getenv("mlb_db_scrape"), host = Sys.geten
 # %>% collect() this actually runs the queries and stores the data in the data frame
 pitchesDF <- select(tbl(my_scrape_db, "pitch"), gameday_link, num, des, type, tfs, tfs_zulu, id, end_speed, pitch_type, count, zone) %>% collect()
 atbatsDF <- select(tbl(my_scrape_db, "atbat"), gameday_link, date, num, pitcher, batter, b_height, pitcher_name, p_throws, batter_name, stand, atbat_des, event, inning, inning_side) %>% collect()
-atbat_untouched <- tbl(my_scrape_db, "atbat") %>% collect()
-pitch_untouched <- tbl(my_scrape_db, "pitch") %>% collect()
+#atbat_untouched <- tbl(my_scrape_db, "atbat") %>% collect()
+#pitch_untouched <- tbl(my_scrape_db, "pitch") %>% collect()
 
 cat("R program running: performing inner join on pitch and atbat data")
 
@@ -188,8 +190,8 @@ cat("R program running: storing results in database")
 
 DBI::dbWriteTable(my_mlb_db, "rawdata_joined", joined.classic.pitchedit, append = TRUE)
 DBI::dbWriteTable(my_mlb_db, "rawdata_ML", var.interest, append = TRUE)
-DBI::dbWriteTable(my_mlb_db, "atbat", atbat_untouched, append = TRUE)
-DBI::dbWriteTable(my_mlb_db, "pitch", pitch_untouched, append = TRUE)
+#DBI::dbWriteTable(my_mlb_db, "atbat", atbat_untouched, append = TRUE)
+#DBI::dbWriteTable(my_mlb_db, "pitch", pitch_untouched, append = TRUE)
 
 # Close open database connections
 # dbDisconnect for DBI connection
