@@ -76,14 +76,14 @@ my_mlb_db <- DBI::dbConnect(RMySQL::MySQL(),
 
 # we can dynamically pull the last day of data that was retrieved
 # and start on the next date
-# last_stored_date <- dbGetQuery(my_dbi_db, "SELECT MAX(date) AS \"Max Date\" FROM atbat")
-# start = as.Date(str_replace_all(last_stored_date, "_", "-")) + 1
+last_stored_date <- dbGetQuery(my_mlb_db, "SELECT MAX(date) AS \"Max Date\" FROM atbat")
+start = as.Date(str_replace_all(last_stored_date, "_", "-")) + 1
 # end today, maybe
 # end = Sys.Date()
 
-start <- as.Date("03-28-18",format="%m-%d-%y")
-#end <- start + 13
-end   <- as.Date("04-01-18",format="%m-%d-%y")
+#start <- as.Date("03-28-18",format="%m-%d-%y")
+end <- start + 13
+#end   <- as.Date("04-01-18",format="%m-%d-%y")
 
 dates <- seq(start, end, by="day")
 
