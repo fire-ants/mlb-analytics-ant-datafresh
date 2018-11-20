@@ -19,15 +19,15 @@ params:
 run:
   path: /bin/bash
   args:
-    - -xc
+    - -exc
     - |
       cf login -a api.run.pivotal.io -u $CF_USER -p $CF_PASSWORD -o $CF_ORG -s $CF_SPACE
       taskname=$(cf run-task MLB-DatafreshAnt "R -f 00-mlb-datafresh.R" | grep "task name" | cut -f2 -d: | xargs echo -n)
-      RUNNING=$(cf tasks MLB-DatafreshAnt | grep "$taskname" | grep 'RUNNING')
-      echo ${RUNNING}
-      while [[ ${RUNNING} ]] ; do
+      IsRunning=$(cf tasks MLB-DatafreshAnt | grep "$taskname" | grep 'RUNNING')
+      echo ${IsRunning}
+      while [[ ${IsRunning} ]] ; do
       sleep 10
-      echo ${RUNNING}
-      RUNNING=$(cf tasks MLB-DatafreshAnt | grep "$taskname" | grep 'RUNNING')
+      IsRunning=$(cf tasks MLB-DatafreshAnt | grep "$taskname" | grep 'RUNNING' || true)
+      echo ${IsRunning}
       done
       echo done processing
