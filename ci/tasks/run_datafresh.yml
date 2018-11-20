@@ -19,7 +19,7 @@ params:
 run:
   path: /bin/bash
   args:
-    - -exc
+    - -xc
     - |
       cf login -a api.run.pivotal.io -u $CF_USER -p $CF_PASSWORD -o $CF_ORG -s $CF_SPACE
       taskname=$(cf run-task MLB-DatafreshAnt "R -f 00-mlb-datafresh.R" | grep "task name" | cut -f2 -d: | xargs echo -n)
