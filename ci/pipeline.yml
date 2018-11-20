@@ -5,7 +5,7 @@ resources:
     uri: git@github.com:fire-ants/mlb-analytics-ant-datafresh.git
     branch: ((git-branch))
     ignore_paths:
-    - ci/**
+    - ci/pipeline.yml
     - README.md
     private_key: ((git-private-key))
 - name: pcf-prod
