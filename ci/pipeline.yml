@@ -24,7 +24,7 @@ jobs:
       - get: mlb-datafresh
         resource: mlb-datafresh
         trigger: true
-    # list directory is a placeholder for checking something before pushing to CF
+    # list directory is an placeholder for checking something before pushing to CF
     - task: list_directory
       file: mlb-datafresh/ci/tasks/list_directory.yml
     - put: pcf-prod
