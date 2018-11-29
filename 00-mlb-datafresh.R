@@ -48,176 +48,222 @@ fix_quant_score <- function(event) {
     return(score)
 }
 
-## End of Functions
+datafresh <- function(day) {
+    cat("R program running")
+    cat("R program running: opening connections to DB")
 
-cat("R program running")
+    #connection used by datfresh to store processed MLB data long term - via DBI::dbWriteTable()
+    #connection used by DBI::dbWriteTable() to write new dataframe to MYSQL database
+    my_mlb_db <- DBI::dbConnect(RMySQL::MySQL(), 
+                        host = Sys.getenv("mlb_db_hostname"),
+                        dbname = Sys.getenv("mlb_db_dbname"),
+                        user = Sys.getenv("mlb_db_username"),
+                        password = Sys.getenv("mlb_db_password")
+    )
 
-#names(s <- Sys.getenv())
-#print(Sys.getenv("mlb_db_hostname"))
+    #connection used by pitchrx scrape function via dbply/dplyr
+    my_scrape_db <- src_mysql(dbname = Sys.getenv("mlb_db_scrape"), host = Sys.getenv("mlb_db_hostname"), port = 3306, user = Sys.getenv("mlb_db_username"), password = Sys.getenv("mlb_db_password"))
+    #try (if there are games) to scrape for this day using the scrape connection and write into the scrape db
+    try(scrape(start = format(day,"%Y-%m-%d"), end = format(day,"%Y-%m-%d"), suffix = "inning/inning_all.xml", connect = my_scrape_db$con))
+    # clean up the scrape connection 
+    # when we are finished with our connection used by the scrape funtion - clean up per Hadley Wickham -> https://github.com/tidyverse/dplyr/issues/950
+    rm(my_scrape_db)
+    # repeat for all days in range
 
-cat("R program running: opening connections to DB")
+    cat("R program running: pulling pitch and atbat dataframes from database")
 
-#connection used by pitchrx scrape function to aquire data from MLB for this data pull and process job via dbply/dplyr
-#my_scrape_db <- src_mysql(dbname = Sys.getenv("mlb_db_scrape"), host = Sys.getenv("mlb_db_hostname"), port = 3306, user = Sys.getenv("mlb_db_username"), password = Sys.getenv("mlb_db_password"))
+    ### Load pitch and atbat data frames
+    my_scrape_db <- src_mysql(dbname = Sys.getenv("mlb_db_scrape"), host = Sys.getenv("mlb_db_hostname"), port = 3306, user = Sys.getenv("mlb_db_username"), password = Sys.getenv("mlb_db_password"))
 
-#connection used by datfresh to store processed MLB data long term - via DBI::dbWriteTable()
-#connection used by DBI::dbWriteTable() to write new dataframe to MYSQL database
-my_mlb_db <- DBI::dbConnect(RMySQL::MySQL(), 
-                      host = Sys.getenv("mlb_db_hostname"),
-                      dbname = Sys.getenv("mlb_db_dbname"),
-                      user = Sys.getenv("mlb_db_username"),
-                      password = Sys.getenv("mlb_db_password")
-)
+    # don't close connections until your done with the data.  use %>% collect() to run the queries now, otherwise, queries are ececuted later when dataframe objects are used
+    # %>% collect() this actually runs the queries and stores the data in the data frame
+    pitchesDF <- select(tbl(my_scrape_db, "pitch"), gameday_link, num, des, type, tfs, tfs_zulu, id, end_speed, pitch_type, count, zone) %>% collect()
+    atbatsDF <- select(tbl(my_scrape_db, "atbat"), gameday_link, date, num, pitcher, batter, b_height, pitcher_name, p_throws, batter_name, stand, atbat_des, event, inning, inning_side) %>% collect()
+    #atbat_untouched <- tbl(my_scrape_db, "atbat") %>% collect()
+    #pitch_untouched <- tbl(my_scrape_db, "pitch") %>% collect()
 
-# cat("R program running: running PitchRx MLB scrape function")
-# scrape(start = "2018-04-02", end = "2018-04-08", suffix = "inning/inning_all.xml", connect = my_pitchrx_db$con)
-# when we are finished with our connection used by the scrape funtion - clean up per Hadley Wickham -> https://github.com/tidyverse/dplyr/issues/950
-# rm(my_pitchrx_db)
+    cat("R program running: performing inner join on pitch and atbat data")
 
-# we can dynamically pull the last day of data that was retrieved
-# and start on the next date
+    # join filtered atbats to all pitches
+    pitchesJoin <- collect(inner_join(pitchesDF, atbatsDF))
 
-#last_stored_date <- dbGetQuery(my_mlb_db, "SELECT MAX(date) AS \"Max Date\" FROM rawdata_joined")
-#start = as.Date(str_replace_all(last_stored_date, "_", "-")) + 1
+    cat("R program running: applying propriatory scoring methods")
 
-# end today, maybe
-# end = Sys.Date()
+    # score Qual and Quant mutate
+    joined <- pitchesJoin %>% mutate(quant_score_des = get_quant_score(des),
+                                    fix_quant_score = fix_quant_score(event) * (des == 'In play, run(s)'),
+                                    quant_score = quant_score_des + fix_quant_score,
+                                    qual_score = get_qual_score(atbat_des) * (type == 'X'),
+                                    hitter_val = quant_score + qual_score)
 
-start <- as.Date("03-25-18",format="%m-%d-%y")
-#end <- start + 13
-end   <- as.Date("03-27-18",format="%m-%d-%y")
+    cat("R program running: pre-processing data for machine learning")
 
-dates <- seq(start, end, by="day")
+    # convert to factor variables
+    joined$pitch_type <- as.factor(joined$pitch_type) 
+    joined$des <- as.factor(joined$des) 
+    joined$type <- as.factor(joined$type)
+    joined$count <- as.factor(joined$count) 
+    joined$event <- as.factor(joined$event) 
+    joined$p_throws <- as.factor(joined$p_throws)
+    joined$zone <- as.factor(joined$zone)
+    joined$stand <- as.factor(joined$stand)
+    joined$inning <- as.factor(joined$inning)
+    joined$inning_side <- as.factor(joined$inning_side)
 
-for(di in as.list(dates)) {
-  #connection used by pitchrx scrape function via dbply/dplyr
-  my_scrape_db <- src_mysql(dbname = Sys.getenv("mlb_db_scrape"), host = Sys.getenv("mlb_db_hostname"), port = 3306, user = Sys.getenv("mlb_db_username"), password = Sys.getenv("mlb_db_password"))
-  #try (if there are games) to scrape for this day using the scrape connection and write into the scrape db
-  try(scrape(start = format(di,"%Y-%m-%d"), end = format(di,"%Y-%m-%d"), suffix = "inning/inning_all.xml", connect = my_scrape_db$con))
-  # clean up the scrape connection 
-  rm(my_scrape_db)
-  # repeat for all days in range
+    # convert FS and FT to SInkers 
+    levels(joined$pitch_type)[levels(joined$pitch_type)=="FS"] <- "SI"
+    levels(joined$pitch_type)[levels(joined$pitch_type)=="FT"] <- "SI"
+    levels(joined$pitch_type)[levels(joined$pitch_type)=="FC"] <- "SL"
+    levels(joined$pitch_type)[levels(joined$pitch_type)=="KC"] <- "KN"
+
+    # Decide Good (1) or Bad (0)
+    joined.classic <- joined %>% mutate(hv_binary = ifelse(hitter_val < 0, 1, 0))
+
+    #create zone and pitch type pairs
+    joined.classic <- joined.classic %>% mutate(ptz=paste(pitch_type,zone, sep = "_"))
+
+    #remove infrequent pitch types
+    joined.classic.pitchedit <- joined.classic %>% filter(pitch_type != c('EP','FO','PO','SC'))
+
+    #view missing data
+    #visna(joined.classic, tp = TRUE, col = "blue")
+
+    #create subsets of pitcher stance and batter stance 
+    #Rh <- joined.classic %>% filter(stand == "R")
+    #Lh <- joined.classic %>% filter(stand == "L")
+
+    #Rpitch <- joined.classic %>% filter(p_throws == "R")
+    #Lpitch <- joined.classic %>% filter(p_throws =="L")
+
+    #RhRp <- Rh %>% filter(p_throws == "R")
+    #RhLp <- Rh %>% filter(p_throws == "L")
+    #LhRp <- Lh %>% filter(p_throws == "R")
+    #LhLp <- Lh %>% filter(p_throws == "L")
+
+    #Primary Component Plots... need to update table names per above convention
+    #PCP <- ggparcoord(data = joined_classic[order(joined_classic$hv_binary, decreasing = FALSE),], columns = c(40,46,30,16,17,32,88), groupColumn = "hv_binary", title = "Factors v Pitcher Outcome", alpha = .01) PCP_cat <- ggparcoord(data = joined.temp[order(joined.temp$GoodBadQual, decreasing = TRUE),], columns = c(40,46,30,32,88), groupColumn = "GoodBadQual", title = "Categorical Factors v Pitcher Outcome")
+    #RpRh_pcp <- ggparcoord(data = RhRp[order(RhRp$hv_binary, decreasing = FALSE),], columns = c(8,9,11,14,27,28), groupColumn = "hv_binary", title = "RpRh PCP v Pitcher Outcome")
+    #RpLh_pcp <- ggparcoord(data = RpitchLh[order(RpitchLh$GoodBadQual, decreasing = TRUE),], columns = c(16,17,30,32,40,46,88), groupColumn = "GoodBadQual", title = "RpLh PCP v Pitcher Outcome")
+    #LpRh_pcp <- ggparcoord(data = LpitchRh[order(LpitchRh$GoodBadQual, decreasing = TRUE),], columns = c(16,17,30,32,40,46,88), groupColumn = "GoodBadQual", title = "LpRh PCP v Pitcher Outcome")
+    #LpLh_pcp <- ggparcoord(data = LpitchLh[order(LpitchLh$GoodBadQual, decreasing = TRUE),], columns = c(16,17,30,32,40,46,88), groupColumn = "GoodBadQual", title = "LpLh PCP v Pitcher Outcome")
+
+    #create data for Swinging Strikes outside the strike zone. 
+    #SS_NonSZ_Rh <- Rpitch %>% filter (des == "Swinging Strike" & zone == c(11,12,13,14))
+    #SS_NonSZ_Lh <- Lpitch %>% filter (des == "Swinging Strike" & zone == c(11,12,13,14))
+
+    #export features of interest, with hv_binary label 1 if <0, else 0
+    var.interest <- joined.classic.pitchedit %>% select(3,5,6,8:13,16,18,22,27:29)
+    #write.csv(var.interest, file = paste(format(Sys.Date(), "HVal-%Y-%m-%d"), "csv", sep = "."))
+    #write.csv(var.interest, file = "rawdata_ML.csv")
+
+    cat("R program running: storing results in database")
+
+    DBI::dbWriteTable(my_mlb_db, "rawdata_joined", joined.classic.pitchedit, append = TRUE)
+    DBI::dbWriteTable(my_mlb_db, "rawdata_ML", var.interest, append = TRUE)
+    #DBI::dbWriteTable(my_mlb_db, "atbat", atbat_untouched, append = TRUE)
+    #DBI::dbWriteTable(my_mlb_db, "pitch", pitch_untouched, append = TRUE)
+
+    # Close open database connections
+    # dbDisconnect for DBI connection
+    dbDisconnect(my_mlb_db)
+    # RM for DPLYR connection
+    rm(my_scrape_db)
+
+    # we have all the MLB data we want for this ingest period.  Clean up / wipe the scrape databse - so we have a clean next run
+
+    my_scrape_db_dbi <- DBI::dbConnect(RMySQL::MySQL(), 
+                        host = Sys.getenv("mlb_db_hostname"),
+                        dbname = Sys.getenv("mlb_db_scrape"),
+                        user = Sys.getenv("mlb_db_username"),
+                        password = Sys.getenv("mlb_db_password")
+    )
+
+    cat("R program running: data loaded into memory - wiping scape database")
+    #dbGetQuery(my_scrape_db, "SHOW TABLES")
+    dbListTables(my_scrape_db_dbi)
+
+    dbGetQuery(my_scrape_db_dbi, "DROP TABLE IF EXISTS pitch")
+    dbGetQuery(my_scrape_db_dbi, "DROP TABLE IF EXISTS action")
+    dbGetQuery(my_scrape_db_dbi, "DROP TABLE IF EXISTS runner")
+    dbGetQuery(my_scrape_db_dbi, "DROP TABLE IF EXISTS po")
+    dbGetQuery(my_scrape_db_dbi, "DROP TABLE IF EXISTS atbat")
+
+    cat("R program running: data loaded into memory - scape database tables dropped")
+    dbListTables(my_scrape_db_dbi)
+    dbDisconnect(my_scrape_db_dbi)
+
 }
 
+## End of Functions
 
-cat("R program running: pulling pitch and atbat dataframes from database")
+## MAIN LOOP
 
-### Load pitch and atbat data frames
-my_scrape_db <- src_mysql(dbname = Sys.getenv("mlb_db_scrape"), host = Sys.getenv("mlb_db_hostname"), port = 3306, user = Sys.getenv("mlb_db_username"), password = Sys.getenv("mlb_db_password"))
+## Define Season Dates
+season_start_2017 <- as.Date("04-02-17",format="%m-%d-%y")
+season_start_2018 <- as.Date("03-29-18",format="%m-%d-%y")
+season_start_2019 <- as.Date("03-20-19",format="%m-%d-%y")
+season_start_2020 <- as.Date("03-20-20",format="%m-%d-%y")
+season_end_2017 <- as.Date("11-01-17",format="%m-%d-%y")
+season_end_2018 <- as.Date("09-30-18",format="%m-%d-%y")
+season_end_2019 <- as.Date("09-30-19",format="%m-%d-%y")
+season_end_2020 <- as.Date("09-30-20",format="%m-%d-%y")
 
-# don't close connections until your done with the data.  use %>% collect() to run the queries now, otherwise, queries are ececuted later when dataframe objects are used
-# %>% collect() this actually runs the queries and stores the data in the data frame
-pitchesDF <- select(tbl(my_scrape_db, "pitch"), gameday_link, num, des, type, tfs, tfs_zulu, id, end_speed, pitch_type, count, zone) %>% collect()
-atbatsDF <- select(tbl(my_scrape_db, "atbat"), gameday_link, date, num, pitcher, batter, b_height, pitcher_name, p_throws, batter_name, stand, atbat_des, event, inning, inning_side) %>% collect()
-#atbat_untouched <- tbl(my_scrape_db, "atbat") %>% collect()
-#pitch_untouched <- tbl(my_scrape_db, "pitch") %>% collect()
+## setup to pull all historical data beginning with big_start date
+big_start <- season_start_2017
 
-cat("R program running: performing inner join on pitch and atbat data")
+## Is there a database table rawdata_joined?
 
-# join filtered atbats to all pitches
-pitchesJoin <- collect(inner_join(pitchesDF, atbatsDF))
+if (dbExistsTable(my_mlb_db, "rawdata_joined")) {
+  print ("rawdata_joined exists")
+  
+  last_date_stored <- dbGetQuery(my_mlb_db, "SELECT MAX(date) AS \"Max Date\" FROM rawdata_joined")
+  start = as.Date(str_replace_all(last_date_stored, "_", "-")) + 1
+  
+} else {
+  # database doesn't exist!
+  start = big_start
+}
 
-cat("R program running: applying propriatory scoring methods")
+## pull data from start till yesterday
+today <- Sys.Date()
 
-# score Qual and Quant mutate
-joined <- pitchesJoin %>% mutate(quant_score_des = get_quant_score(des),
-                                 fix_quant_score = fix_quant_score(event) * (des == 'In play, run(s)'),
-                                 quant_score = quant_score_des + fix_quant_score,
-                                 qual_score = get_qual_score(atbat_des) * (type == 'X'),
-                                 hitter_val = quant_score + qual_score)
+while (start < today) {
+    # Update start date.... 
+    # Jump the date forward if start is in the off season
+    start_date_year <- as.numeric(format(start,"%Y"))
+    if (start_date_year == 2017) {
+        if (start < season_start_2017) {
+            start = season_start_2017
+        }
+    } else if (start_date_year == 2018) {
+        if (start < season_start_2018) {
+            start = season_start_2018
+        }
+    } else if (start_date_year == 2019) {
+        if (start < season_start_2019) {
+            start = season_start_2019
+        }
+    }
 
-cat("R program running: pre-processing data for machine learning")
+    # Run DataFresh
+    datafresh(start)
 
-# convert to factor variables
-joined$pitch_type <- as.factor(joined$pitch_type) 
-joined$des <- as.factor(joined$des) 
-joined$type <- as.factor(joined$type)
-joined$count <- as.factor(joined$count) 
-joined$event <- as.factor(joined$event) 
-joined$p_throws <- as.factor(joined$p_throws)
-joined$zone <- as.factor(joined$zone)
-joined$stand <- as.factor(joined$stand)
-joined$inning <- as.factor(joined$inning)
-joined$inning_side <- as.factor(joined$inning_side)
-
-# convert FS and FT to SInkers 
-levels(joined$pitch_type)[levels(joined$pitch_type)=="FS"] <- "SI"
-levels(joined$pitch_type)[levels(joined$pitch_type)=="FT"] <- "SI"
-levels(joined$pitch_type)[levels(joined$pitch_type)=="FC"] <- "SL"
-levels(joined$pitch_type)[levels(joined$pitch_type)=="KC"] <- "KN"
-
-# Decide Good (1) or Bad (0)
-joined.classic <- joined %>% mutate(hv_binary = ifelse(hitter_val < 0, 1, 0))
-
-#create zone and pitch type pairs
-joined.classic <- joined.classic %>% mutate(ptz=paste(pitch_type,zone, sep = "_"))
-
-#remove infrequent pitch types
-joined.classic.pitchedit <- joined.classic %>% filter(pitch_type != c('EP','FO','PO','SC'))
-
-#view missing data
-#visna(joined.classic, tp = TRUE, col = "blue")
-
-#create subsets of pitcher stance and batter stance 
-#Rh <- joined.classic %>% filter(stand == "R")
-#Lh <- joined.classic %>% filter(stand == "L")
-
-#Rpitch <- joined.classic %>% filter(p_throws == "R")
-#Lpitch <- joined.classic %>% filter(p_throws =="L")
-
-#RhRp <- Rh %>% filter(p_throws == "R")
-#RhLp <- Rh %>% filter(p_throws == "L")
-#LhRp <- Lh %>% filter(p_throws == "R")
-#LhLp <- Lh %>% filter(p_throws == "L")
-
-#Primary Component Plots... need to update table names per above convention
-#PCP <- ggparcoord(data = joined_classic[order(joined_classic$hv_binary, decreasing = FALSE),], columns = c(40,46,30,16,17,32,88), groupColumn = "hv_binary", title = "Factors v Pitcher Outcome", alpha = .01) PCP_cat <- ggparcoord(data = joined.temp[order(joined.temp$GoodBadQual, decreasing = TRUE),], columns = c(40,46,30,32,88), groupColumn = "GoodBadQual", title = "Categorical Factors v Pitcher Outcome")
-#RpRh_pcp <- ggparcoord(data = RhRp[order(RhRp$hv_binary, decreasing = FALSE),], columns = c(8,9,11,14,27,28), groupColumn = "hv_binary", title = "RpRh PCP v Pitcher Outcome")
-#RpLh_pcp <- ggparcoord(data = RpitchLh[order(RpitchLh$GoodBadQual, decreasing = TRUE),], columns = c(16,17,30,32,40,46,88), groupColumn = "GoodBadQual", title = "RpLh PCP v Pitcher Outcome")
-#LpRh_pcp <- ggparcoord(data = LpitchRh[order(LpitchRh$GoodBadQual, decreasing = TRUE),], columns = c(16,17,30,32,40,46,88), groupColumn = "GoodBadQual", title = "LpRh PCP v Pitcher Outcome")
-#LpLh_pcp <- ggparcoord(data = LpitchLh[order(LpitchLh$GoodBadQual, decreasing = TRUE),], columns = c(16,17,30,32,40,46,88), groupColumn = "GoodBadQual", title = "LpLh PCP v Pitcher Outcome")
-
-#create data for Swinging Strikes outside the strike zone. 
-#SS_NonSZ_Rh <- Rpitch %>% filter (des == "Swinging Strike" & zone == c(11,12,13,14))
-#SS_NonSZ_Lh <- Lpitch %>% filter (des == "Swinging Strike" & zone == c(11,12,13,14))
-
-#export features of interest, with hv_binary label 1 if <0, else 0
-var.interest <- joined.classic.pitchedit %>% select(3,5,6,8:13,16,18,22,27:29)
-#write.csv(var.interest, file = paste(format(Sys.Date(), "HVal-%Y-%m-%d"), "csv", sep = "."))
-#write.csv(var.interest, file = "rawdata_ML.csv")
-
-cat("R program running: storing results in database")
-
-DBI::dbWriteTable(my_mlb_db, "rawdata_joined", joined.classic.pitchedit, append = TRUE)
-DBI::dbWriteTable(my_mlb_db, "rawdata_ML", var.interest, append = TRUE)
-#DBI::dbWriteTable(my_mlb_db, "atbat", atbat_untouched, append = TRUE)
-#DBI::dbWriteTable(my_mlb_db, "pitch", pitch_untouched, append = TRUE)
-
-# Close open database connections
-# dbDisconnect for DBI connection
-dbDisconnect(my_mlb_db)
-# RM for DPLYR connection
-rm(my_scrape_db)
-
-# we have all the MLB data we want for this ingest period.  Clean up / wipe the scrape databse - so we have a clean next run
-
-my_scrape_db_dbi <- DBI::dbConnect(RMySQL::MySQL(), 
-                      host = Sys.getenv("mlb_db_hostname"),
-                      dbname = Sys.getenv("mlb_db_scrape"),
-                      user = Sys.getenv("mlb_db_username"),
-                      password = Sys.getenv("mlb_db_password")
-)
-
-cat("R program running: data loaded into memory - wiping scape database")
-#dbGetQuery(my_scrape_db, "SHOW TABLES")
-dbListTables(my_scrape_db_dbi)
-
-dbGetQuery(my_scrape_db_dbi, "DROP TABLE IF EXISTS pitch")
-dbGetQuery(my_scrape_db_dbi, "DROP TABLE IF EXISTS action")
-dbGetQuery(my_scrape_db_dbi, "DROP TABLE IF EXISTS runner")
-dbGetQuery(my_scrape_db_dbi, "DROP TABLE IF EXISTS po")
-dbGetQuery(my_scrape_db_dbi, "DROP TABLE IF EXISTS atbat")
-
-cat("R program running: data loaded into memory - scape database tables dropped")
-dbListTables(my_scrape_db_dbi)
-dbDisconnect(my_scrape_db_dbi)
+    # Update start date.... also the while loop control variable
+    # Jump the date forward if start is after season ends
+    last_date_stored <- dbGetQuery(my_mlb_db, "SELECT MAX(date) AS \"Max Date\" FROM rawdata_joined")
+    start = as.Date(str_replace_all(last_date_stored, "_", "-")) + 1
+    start_date_year <- as.numeric(format(start,"%Y"))
+    if (start_date_year == 2017) {
+        if (start > season_end_2017) {
+            start = season_start_2018
+        }
+    } else if (start_date_year == 2018) {
+        if (start > season_end_2018) {
+            start = season_start_2019
+        }
+    } else if (start_date_year == 2019) {
+        if (start > season_end_2019) {
+            start = season_start_2020
+        }
+    }
+}

@@ -32,3 +32,4 @@ run:
       done
       cf logs MLB-DatafreshAnt --recent | grep "$taskname" | tail -n60
       echo done processing
+      cf logs mlb-datafreshant --recent
