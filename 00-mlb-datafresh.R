@@ -211,8 +211,15 @@ season_end_2020 <- as.Date("09-30-20",format="%m-%d-%y")
 ## setup to pull all historical data beginning with big_start date
 big_start <- season_start_2017
 
-## Is there a database table rawdata_joined?
+# connect to database
+my_mlb_db <- DBI::dbConnect(RMySQL::MySQL(), 
+                    host = Sys.getenv("mlb_db_hostname"),
+                    dbname = Sys.getenv("mlb_db_dbname"),
+                    user = Sys.getenv("mlb_db_username"),
+                    password = Sys.getenv("mlb_db_password")
+)
 
+## Is there a database table rawdata_joined?
 if (dbExistsTable(my_mlb_db, "rawdata_joined")) {
   print ("rawdata_joined exists")
   
@@ -267,3 +274,5 @@ while (start < today) {
         }
     }
 }
+
+dbDisconnect(my_mlb_db)
