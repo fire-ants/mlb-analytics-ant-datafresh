@@ -80,6 +80,8 @@ datafresh <- function(day) {
     ## if not clean up and don't do anything else for this day 
     if ( (dbExistsTable(my_scrape_db_dbi, "pitch")) && (dbExistsTable(my_scrape_db_dbi, "atbat")) ) {
 
+        dbDisconnect(my_scrape_db_dbi)
+
         print("R program running: pulling pitch and atbat dataframes from scrape database")
 
         ### Load pitch and atbat data frames
