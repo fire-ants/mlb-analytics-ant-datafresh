@@ -80,6 +80,7 @@ datafresh <- function(day) {
     ## if not clean up and don't do anything else for this day 
     if ( (dbExistsTable(my_scrape_db_dbi, "pitch")) && (dbExistsTable(my_scrape_db_dbi, "atbat")) ) {
 
+        # close the connection that checked if data was in the scrape database
         dbDisconnect(my_scrape_db_dbi)
 
         print("R program running: pulling pitch and atbat dataframes from scrape database")
@@ -206,9 +207,16 @@ datafresh <- function(day) {
         
     } else {
         
+        # close the connection that checked if data was in the scrape database
+        dbDisconnect(my_scrape_db_dbi)
+        # close this connection also
+        dbDisconnect(my_mlb_db)
+
         print(paste0("R program running: Unable to scrape, process & load data for: ", format(day,"%m-%d-%y")))
 
         # something went wrong with the scrape for this day.  Clean up / wipe the scrape databse - so we have a clean next run
+        # Also better add this day to the skip_days vector
+        skip_dates <<- append(skip_dates, as.Date(day, format="%m-%d-%y"))
 
         my_scrape_db_dbi <- DBI::dbConnect(RMySQL::MySQL(), 
                             host = Sys.getenv("mlb_db_hostname"),
@@ -275,6 +283,10 @@ if (dbExistsTable(my_mlb_db, "rawdata_joined")) {
 ## pull data from start till yesterday
 today <- Sys.Date()
 
+## create an empty vector of days to skip (date values) because the scape fails
+skip_dates <- integer(0)
+class(skip_dates) <- "Date"
+
 while (start < today) {
     # Update start date.... 
     # Jump the date forward if start is in the off season
@@ -297,9 +309,15 @@ while (start < today) {
     datafresh(start)
 
     # Update start date.... also the while loop control variable
-    # Jump the date forward if start is after season ends
     last_date_stored <- dbGetQuery(my_mlb_db, "SELECT MAX(date) AS \"Max Date\" FROM rawdata_joined")
     start = as.Date(str_replace_all(last_date_stored, "_", "-")) + 1
+
+    # should we skip this day becuase it already failed?
+    if (start %in% skip_dates) {
+        start = start + 1
+    }
+    
+    # Jump the date forward if start is after season ends
     start_date_year <- as.numeric(format(start,"%Y"))
     if (start_date_year == 2017) {
         if (start > season_end_2017) {
