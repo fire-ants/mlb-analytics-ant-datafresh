@@ -215,8 +215,8 @@ datafresh <- function(day) {
         print(paste0("R program running: Unable to scrape, process & load data for: ", format(day,"%m-%d-%y")))
 
         # something went wrong with the scrape for this day.  Clean up / wipe the scrape databse - so we have a clean next run
-        # Also better add this day to the skip_days vector
-        skip_dates <<- append(skip_dates, as.Date(day, format="%m-%d-%y"))
+        # keeping track of failed dates for summary at end
+        dates_failed <<- append(dates_failed, as.Date(day, format="%m-%d-%y"))
 
         my_scrape_db_dbi <- DBI::dbConnect(RMySQL::MySQL(), 
                             host = Sys.getenv("mlb_db_hostname"),
@@ -284,8 +284,8 @@ if (dbExistsTable(my_mlb_db, "rawdata_joined")) {
 today <- Sys.Date()
 
 ## create an empty vector of days to skip (date values) because the scape fails
-skip_dates <- integer(0)
-class(skip_dates) <- "Date"
+dates_failed <- integer(0)
+class(dates_failed) <- "Date"
 
 while (start < today) {
     # Update start date.... 
@@ -308,15 +308,8 @@ while (start < today) {
     # Run DataFresh
     datafresh(start)
 
-    # if datafresh failed to scrape and load for this day, jump forward to the next day
-    # if datafresh succeeded, lets move on to the next day also
-    if (start %in% skip_dates) {
-        start = start + 1
-    } else {
-        # Update start date.... also the while loop control variable
-        last_date_stored <- dbGetQuery(my_mlb_db, "SELECT MAX(date) AS \"Max Date\" FROM rawdata_joined")
-        start = as.Date(str_replace_all(last_date_stored, "_", "-")) + 1
-    }
+    # Jump the date forward to the next day
+    start = start + 1
     
     # Jump the date forward if start is after season ends
     start_date_year <- as.numeric(format(start,"%Y"))
