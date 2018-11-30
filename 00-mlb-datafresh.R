@@ -308,13 +308,14 @@ while (start < today) {
     # Run DataFresh
     datafresh(start)
 
-    # Update start date.... also the while loop control variable
-    last_date_stored <- dbGetQuery(my_mlb_db, "SELECT MAX(date) AS \"Max Date\" FROM rawdata_joined")
-    start = as.Date(str_replace_all(last_date_stored, "_", "-")) + 1
-
-    # should we skip this day becuase it already failed?
+    # if datafresh failed to scrape and load for this day, jump forward to the next day
+    # if datafresh succeeded, lets move on to the next day also
     if (start %in% skip_dates) {
         start = start + 1
+    } else {
+        # Update start date.... also the while loop control variable
+        last_date_stored <- dbGetQuery(my_mlb_db, "SELECT MAX(date) AS \"Max Date\" FROM rawdata_joined")
+        start = as.Date(str_replace_all(last_date_stored, "_", "-")) + 1
     }
     
     # Jump the date forward if start is after season ends
