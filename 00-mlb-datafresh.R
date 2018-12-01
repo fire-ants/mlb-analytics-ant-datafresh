@@ -57,8 +57,8 @@ drop_scrape_tables <- function() {
                         password = Sys.getenv("mlb_db_password")
     )
 
-    print("R program running: aborting load for this day - cleaning up - wiping scape database")
-    dbListTables(my_scrape_db_dbi)
+    print("R program running: cleaning up - wiping scape database")
+    #dbListTables(my_scrape_db_dbi)
 
     dbGetQuery(my_scrape_db_dbi, "DROP TABLE IF EXISTS pitch")
     dbGetQuery(my_scrape_db_dbi, "DROP TABLE IF EXISTS action")
@@ -66,8 +66,8 @@ drop_scrape_tables <- function() {
     dbGetQuery(my_scrape_db_dbi, "DROP TABLE IF EXISTS po")
     dbGetQuery(my_scrape_db_dbi, "DROP TABLE IF EXISTS atbat")
 
-    print("R program running: aborting load for this day - cleaning up - scape database tables dropped")
-    dbListTables(my_scrape_db_dbi)
+    print("R program running: cleaning up - scape database tables dropped")
+    #dbListTables(my_scrape_db_dbi)
     dbDisconnect(my_scrape_db_dbi)
 
 }
@@ -228,6 +228,7 @@ datafresh <- function(day) {
         # keeping track of failed dates for summary at end
         dates_failed <<- append(dates_failed, as.Date(day, format="%m-%d-%y"))
 
+        print("R program running: aborting load for this day")
         drop_scrape_tables()
 
     }
