@@ -48,6 +48,30 @@ fix_quant_score <- function(event) {
     return(score)
 }
 
+drop_scrape_tables <- function() {
+
+    my_scrape_db_dbi <- DBI::dbConnect(RMySQL::MySQL(), 
+                        host = Sys.getenv("mlb_db_hostname"),
+                        dbname = Sys.getenv("mlb_db_scrape"),
+                        user = Sys.getenv("mlb_db_username"),
+                        password = Sys.getenv("mlb_db_password")
+    )
+
+    print("R program running: aborting load for this day - cleaning up - wiping scape database")
+    dbListTables(my_scrape_db_dbi)
+
+    dbGetQuery(my_scrape_db_dbi, "DROP TABLE IF EXISTS pitch")
+    dbGetQuery(my_scrape_db_dbi, "DROP TABLE IF EXISTS action")
+    dbGetQuery(my_scrape_db_dbi, "DROP TABLE IF EXISTS runner")
+    dbGetQuery(my_scrape_db_dbi, "DROP TABLE IF EXISTS po")
+    dbGetQuery(my_scrape_db_dbi, "DROP TABLE IF EXISTS atbat")
+
+    print("R program running: aborting load for this day - cleaning up - scape database tables dropped")
+    dbListTables(my_scrape_db_dbi)
+    dbDisconnect(my_scrape_db_dbi)
+
+}
+
 datafresh <- function(day) {
     print(paste0("R program running: DataFresh scraping and loading: ", format(day,"%m-%d-%y")))
 
@@ -187,26 +211,9 @@ datafresh <- function(day) {
 
         # we have all the MLB data we want for this ingest period.  Clean up / wipe the scrape databse - so we have a clean next run
 
-        my_scrape_db_dbi <- DBI::dbConnect(RMySQL::MySQL(), 
-                            host = Sys.getenv("mlb_db_hostname"),
-                            dbname = Sys.getenv("mlb_db_scrape"),
-                            user = Sys.getenv("mlb_db_username"),
-                            password = Sys.getenv("mlb_db_password")
-        )
+        dates_success <<- append(dates_success, as.Date(day, format="%m-%d-%y"))
 
-        print("R program running: cleaning up - wiping scape database")
-        #dbGetQuery(my_scrape_db, "SHOW TABLES")
-        dbListTables(my_scrape_db_dbi)
-
-        dbGetQuery(my_scrape_db_dbi, "DROP TABLE IF EXISTS pitch")
-        dbGetQuery(my_scrape_db_dbi, "DROP TABLE IF EXISTS action")
-        dbGetQuery(my_scrape_db_dbi, "DROP TABLE IF EXISTS runner")
-        dbGetQuery(my_scrape_db_dbi, "DROP TABLE IF EXISTS po")
-        dbGetQuery(my_scrape_db_dbi, "DROP TABLE IF EXISTS atbat")
-
-        print("R program running: cleaning up - scape database tables dropped")
-        dbListTables(my_scrape_db_dbi)
-        dbDisconnect(my_scrape_db_dbi)   
+        drop_scrape_tables() 
         
     } else {
         
@@ -221,25 +228,7 @@ datafresh <- function(day) {
         # keeping track of failed dates for summary at end
         dates_failed <<- append(dates_failed, as.Date(day, format="%m-%d-%y"))
 
-        my_scrape_db_dbi <- DBI::dbConnect(RMySQL::MySQL(), 
-                            host = Sys.getenv("mlb_db_hostname"),
-                            dbname = Sys.getenv("mlb_db_scrape"),
-                            user = Sys.getenv("mlb_db_username"),
-                            password = Sys.getenv("mlb_db_password")
-        )
-
-        print("R program running: aborting load for this day - cleaning up - wiping scape database")
-        dbListTables(my_scrape_db_dbi)
-
-        dbGetQuery(my_scrape_db_dbi, "DROP TABLE IF EXISTS pitch")
-        dbGetQuery(my_scrape_db_dbi, "DROP TABLE IF EXISTS action")
-        dbGetQuery(my_scrape_db_dbi, "DROP TABLE IF EXISTS runner")
-        dbGetQuery(my_scrape_db_dbi, "DROP TABLE IF EXISTS po")
-        dbGetQuery(my_scrape_db_dbi, "DROP TABLE IF EXISTS atbat")
-
-        print("R program running: aborting load for this day - cleaning up - scape database tables dropped")
-        dbListTables(my_scrape_db_dbi)
-        dbDisconnect(my_scrape_db_dbi)
+        drop_scrape_tables()
 
     }
 
@@ -286,9 +275,16 @@ if (dbExistsTable(my_mlb_db, "rawdata_joined")) {
 ## pull data from start till yesterday
 today <- Sys.Date()
 
-## create an empty vector of days to skip (date values) because the scape fails
+## create an empty vector to keep track of days where scape fails
 dates_failed <- integer(0)
 class(dates_failed) <- "Date"
+
+## create an empty vector to keep track of days where scape succeeds
+dates_success <- integer(0)
+class(dates_success) <- "Date"
+
+# ensure there isn't any stale data in the temp scrape databse
+drop_scrape_tables()
 
 while (start < today) {
     # Update start date.... 
@@ -332,3 +328,6 @@ while (start < today) {
 }
 
 dbDisconnect(my_mlb_db)
+
+print(paste0("R program complete: DataFresh successfully scraped and loaded: ", length(dates_success), " days"))
+print(paste0("R program complete: DataFresh failed to scrape and load: ", length(dates_failed), " days"))
