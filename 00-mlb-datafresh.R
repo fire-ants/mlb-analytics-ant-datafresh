@@ -95,6 +95,9 @@ datafresh <- function(day) {
         #atbat_untouched <- tbl(my_scrape_db, "atbat") %>% collect()
         #pitch_untouched <- tbl(my_scrape_db, "pitch") %>% collect()
 
+        # Date stored as character class  - "2018_04_01" | adjust to actual date values
+        atbatsDF$date <- as.Date(atbatsDF$date , "%Y_%m_%d")
+
         print("R program running: performing inner join on pitch and atbat data")
 
         # join filtered atbats to all pitches
