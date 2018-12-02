@@ -273,6 +273,9 @@ my_mlb_db <- DBI::dbConnect(RMySQL::MySQL(),
 if (dbExistsTable(my_mlb_db, "rawdata_joined")) {
   print ("rawdata_joined exists")
   
+  # database table exists
+  db_table_creation <<- FALSE
+
   last_date_stored <- dbGetQuery(my_mlb_db, "SELECT MAX(date) AS \"Max Date\" FROM rawdata_joined")
   start <- as.Date(str_replace_all(last_date_stored, "_", "-")) + 1
   
