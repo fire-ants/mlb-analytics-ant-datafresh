@@ -58,7 +58,6 @@ drop_scrape_tables <- function() {
     )
 
     print("R program running: cleaning up - wiping scape database")
-    #dbListTables(my_scrape_db_dbi)
 
     dbGetQuery(my_scrape_db_dbi, "DROP TABLE IF EXISTS pitch")
     dbGetQuery(my_scrape_db_dbi, "DROP TABLE IF EXISTS action")
@@ -67,7 +66,6 @@ drop_scrape_tables <- function() {
     dbGetQuery(my_scrape_db_dbi, "DROP TABLE IF EXISTS atbat")
 
     print("R program running: cleaning up - scape database tables dropped")
-    #dbListTables(my_scrape_db_dbi)
     dbDisconnect(my_scrape_db_dbi)
 
 }
@@ -200,6 +198,16 @@ datafresh <- function(day) {
 
         DBI::dbWriteTable(my_mlb_db, "rawdata_joined", joined.classic.pitchedit, append = TRUE)
         DBI::dbWriteTable(my_mlb_db, "rawdata_ML", var.interest, append = TRUE)
+
+        # Specify any database table adjustments on first creation of long term tables 
+        if (db_table_creation) {
+            dbGetQuery(my_mlb_db, "ALTER TABLE `rawdata_joined` CHANGE `date` `date` DATE NULL DEFAULT NULL")
+            dbGetQuery(my_mlb_db, "ALTER TABLE `rawdata_ML` CHANGE `date` `date` DATE NULL DEFAULT NULL")
+            
+            # Tables have been created and adjustments made - adjustments will not need to be made again
+            db_table_creation <<- FALSE
+        }
+
         #DBI::dbWriteTable(my_mlb_db, "atbat", atbat_untouched, append = TRUE)
         #DBI::dbWriteTable(my_mlb_db, "pitch", pitch_untouched, append = TRUE)
 
@@ -266,11 +274,13 @@ if (dbExistsTable(my_mlb_db, "rawdata_joined")) {
   print ("rawdata_joined exists")
   
   last_date_stored <- dbGetQuery(my_mlb_db, "SELECT MAX(date) AS \"Max Date\" FROM rawdata_joined")
-  start = as.Date(str_replace_all(last_date_stored, "_", "-")) + 1
+  start <- as.Date(str_replace_all(last_date_stored, "_", "-")) + 1
   
 } else {
-  # database doesn't exist!
-  start = big_start
+  # database table doesn't exist!
+  start <- big_start
+  # global variable set when long term database tables are created for the first time
+  db_table_creation <<- TRUE
 }
 
 ## pull data from start till yesterday

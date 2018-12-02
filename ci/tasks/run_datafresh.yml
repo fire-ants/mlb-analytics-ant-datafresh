@@ -30,6 +30,5 @@ run:
       IsRunning=$(cf tasks MLB-DatafreshAnt | grep "$taskname" | grep 'RUNNING' || true)
       echo ${IsRunning}
       done
-      cf logs MLB-DatafreshAnt --recent | grep "$taskname" | tail -n60
       echo done processing
       cf logs mlb-datafreshant --recent | grep "$taskname"
