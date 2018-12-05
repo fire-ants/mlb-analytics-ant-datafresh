@@ -302,19 +302,31 @@ drop_scrape_tables()
 
 while (start < today) {
     # Update start date.... 
-    # Jump the date forward if start is in the off season
+    # Jump the date forward if before season starts
+    # Jump the date fworard if after season ends
     start_date_year <- as.numeric(format(start,"%Y"))
     if (start_date_year == 2017) {
         if (start < season_start_2017) {
             start = season_start_2017
+        } else if (start > season_end_2017) {
+            start = season_start_2018
+            next
         }
     } else if (start_date_year == 2018) {
         if (start < season_start_2018) {
             start = season_start_2018
+        } else if (start > season_end_2018) {
+            # Jump the date fworard to next season start date
+            # re-evaluate date
+            start = season_start_2019
+            next
         }
     } else if (start_date_year == 2019) {
         if (start < season_start_2019) {
             start = season_start_2019
+        } else if (start > season_end_2019) {
+            start = season_start_2020
+            next
         }
     }
 
@@ -323,22 +335,7 @@ while (start < today) {
 
     # Jump the date forward to the next day
     start = start + 1
-    
-    # Jump the date forward if start is after season ends
-    start_date_year <- as.numeric(format(start,"%Y"))
-    if (start_date_year == 2017) {
-        if (start > season_end_2017) {
-            start = season_start_2018
-        }
-    } else if (start_date_year == 2018) {
-        if (start > season_end_2018) {
-            start = season_start_2019
-        }
-    } else if (start_date_year == 2019) {
-        if (start > season_end_2019) {
-            start = season_start_2020
-        }
-    }
+
 }
 
 dbDisconnect(my_mlb_db)
