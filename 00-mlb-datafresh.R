@@ -112,17 +112,20 @@ datafresh <- function(day) {
 
         # don't close connections until your done with the data.  use %>% collect() to run the queries now, otherwise, queries are ececuted later when dataframe objects are used
         # %>% collect() this actually runs the queries and stores the data in the data frame
-        pitchesDF <- select(tbl(my_scrape_db, "pitch"), gameday_link, num, des, type, tfs, tfs_zulu, id, end_speed, pitch_type, count, zone) %>% collect()
-        atbatsDF <- select(tbl(my_scrape_db, "atbat"), gameday_link, date, num, pitcher, batter, b_height, pitcher_name, p_throws, batter_name, stand, atbat_des, event, inning, inning_side) %>% collect()
-
         # Collect all table data for atbat and pitch tables
+        # This doesn't work... too many common columns?
         #atbat_untouched <- tbl(my_scrape_db, "atbat") %>% collect()
         #pitch_untouched <- tbl(my_scrape_db, "pitch") %>% collect()
+        # this does work... follows original code from Jason Battles
+        # this does work... collect everything from pitch table except event_num, inning, inning_side, next_, play_guid, url
+        # this does work... collect everything from atbat table except event_num, next_, play_guid, url
+        pitch_untouched <- select(tbl(my_scrape_db, "pitch"), gameday_link, num, ax, ay, az, break_angle, break_length, break_y, cc, code, count, des, end_speed, id, mt, nasty, on_1b, on_2b, on_3b, pfx_x, pfx_z, pitch_type, px, pz, spin_dir, spin_rate, start_speed, sv_id, sz_bot, sz_top, tfs, tfs_zulu, type, type_confidence, vx0, vy0, vz0, x, x0, y, y0, z0, zone) %>% collect()
+        atbat_untouched <- select(tbl(my_scrape_db, "atbat"), gameday_link, date, num, pitcher, batter, b_height, pitcher_name, p_throws, batter_name, stand, atbat_des, event, inning, inning_side) %>% collect()
         
         # Dropping columns whose name contain "_es" at the end | not keeping spanish language versions of data
         # columns are not always included and can cause database load challenges
-        #atbatsDF <- atbat_untouched[,!grepl("_es$",names(atbat_untouched))]
-        #pitchesDF <- pitch_untouched[,!grepl("_es$",names(pitch_untouched))]
+        atbatsDF <- atbat_untouched[,!grepl("_es$",names(atbat_untouched))]
+        pitchesDF <- pitch_untouched[,!grepl("_es$",names(pitch_untouched))]
 
         # Date stored as character class  - "2018_04_01" | adjust to actual date values
         atbatsDF$date <- as.Date(atbatsDF$date , "%Y_%m_%d")
