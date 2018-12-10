@@ -118,11 +118,8 @@ datafresh <- function(day) {
         
         # Dropping columns whose name contain "_es" at the end | not keeping spanish language versions of data
         # columns are not always included and can cause database load challenges
-        atbatsDF = atbat_untouched[,!grepl("_es$",names(atbat_untouched))]
-        pitchesDF = pitch_untouched[,!grepl("_es$",names(pitch_untouched))]
-
-        rm(atbat_untouched)
-        rm(pitch_untouched)
+        atbatsDF <- atbat_untouched[,!grepl("_es$",names(atbat_untouched))]
+        pitchesDF <- pitch_untouched[,!grepl("_es$",names(pitch_untouched))]
 
         # Date stored as character class  - "2018_04_01" | adjust to actual date values
         atbatsDF$date <- as.Date(atbatsDF$date , "%Y_%m_%d")
