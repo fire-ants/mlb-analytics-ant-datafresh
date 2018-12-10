@@ -112,14 +112,17 @@ datafresh <- function(day) {
 
         # don't close connections until your done with the data.  use %>% collect() to run the queries now, otherwise, queries are ececuted later when dataframe objects are used
         # %>% collect() this actually runs the queries and stores the data in the data frame
+        pitchesDF <- select(tbl(my_scrape_db, "pitch"), gameday_link, num, des, type, tfs, tfs_zulu, id, end_speed, pitch_type, count, zone) %>% collect()
+        atbatsDF <- select(tbl(my_scrape_db, "atbat"), gameday_link, date, num, pitcher, batter, b_height, pitcher_name, p_throws, batter_name, stand, atbat_des, event, inning, inning_side) %>% collect()
+
         # Collect all table data for atbat and pitch tables
-        atbat_untouched <- tbl(my_scrape_db, "atbat") %>% collect()
-        pitch_untouched <- tbl(my_scrape_db, "pitch") %>% collect()
+        #atbat_untouched <- tbl(my_scrape_db, "atbat") %>% collect()
+        #pitch_untouched <- tbl(my_scrape_db, "pitch") %>% collect()
         
         # Dropping columns whose name contain "_es" at the end | not keeping spanish language versions of data
         # columns are not always included and can cause database load challenges
-        atbatsDF <- atbat_untouched[,!grepl("_es$",names(atbat_untouched))]
-        pitchesDF <- pitch_untouched[,!grepl("_es$",names(pitch_untouched))]
+        #atbatsDF <- atbat_untouched[,!grepl("_es$",names(atbat_untouched))]
+        #pitchesDF <- pitch_untouched[,!grepl("_es$",names(pitch_untouched))]
 
         # Date stored as character class  - "2018_04_01" | adjust to actual date values
         atbatsDF$date <- as.Date(atbatsDF$date , "%Y_%m_%d")
