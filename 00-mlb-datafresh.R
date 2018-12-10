@@ -198,25 +198,20 @@ datafresh <- function(day) {
 
         #export features of interest, with hv_binary label 1 if <0, else 0
         var.interest <- joined.classic.pitchedit %>% select(3,5,6,8:13,16,18,22,27:29)
-        #write.csv(var.interest, file = paste(format(Sys.Date(), "HVal-%Y-%m-%d"), "csv", sep = "."))
-        #write.csv(var.interest, file = "rawdata_ML.csv")
 
         print("R program running: storing results in database")
 
         DBI::dbWriteTable(my_mlb_db, "rawdata_joined", joined.classic.pitchedit, append = TRUE)
-        DBI::dbWriteTable(my_mlb_db, "rawdata_ML", var.interest, append = TRUE)
+        # DBI::dbWriteTable(my_mlb_db, "rawdata_ML", var.interest, append = TRUE)
 
         # Specify any database table adjustments on first creation of long term tables 
         if (db_table_creation) {
             dbGetQuery(my_mlb_db, "ALTER TABLE `rawdata_joined` CHANGE `date` `date` DATE NULL DEFAULT NULL")
-            dbGetQuery(my_mlb_db, "ALTER TABLE `rawdata_ML` CHANGE `date` `date` DATE NULL DEFAULT NULL")
+            # dbGetQuery(my_mlb_db, "ALTER TABLE `rawdata_ML` CHANGE `date` `date` DATE NULL DEFAULT NULL")
             
             # Tables have been created and adjustments made - adjustments will not need to be made again
             db_table_creation <<- FALSE
         }
-
-        #DBI::dbWriteTable(my_mlb_db, "atbat", atbat_untouched, append = TRUE)
-        #DBI::dbWriteTable(my_mlb_db, "pitch", pitch_untouched, append = TRUE)
 
         # Close open database connections
         # dbDisconnect for DBI connection
