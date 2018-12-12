@@ -200,18 +200,18 @@ datafresh <- function(day) {
         #SS_NonSZ_Lh <- Lpitch %>% filter (des == "Swinging Strike" & zone == c(11,12,13,14))
 
         #export features of interest, with hv_binary label 1 if <0, else 0
-        var.interest <- joined.classic.pitchedit %>% select(3,5,6,8:13,16,18,22,27:29)
+        #var.interest <- joined.classic.pitchedit %>% select(3,5,6,8:13,16,18,22,27:29)
+        var.interest <- joined.classic.pitchedit %>% select(c(des, tfs, tfs_zulu, end_speed, pitch_type, count, zone, pitcher, batter, p_throws, stand, inning_side, hitter_val, hv_binary, ptz))
 
         print("R program running: storing results in database")
 
         DBI::dbWriteTable(my_mlb_db, "rawdata_joined", joined.classic.pitchedit, append = TRUE)
-        # DBI::dbWriteTable(my_mlb_db, "rawdata_ML", var.interest, append = TRUE)
+        DBI::dbWriteTable(my_mlb_db, "rawdata_ML", var.interest, append = TRUE)
 
         # Specify any database table adjustments on first creation of long term tables 
         if (db_table_creation) {
             dbGetQuery(my_mlb_db, "ALTER TABLE `rawdata_joined` CHANGE `date` `date` DATE NULL DEFAULT NULL")
-            # dbGetQuery(my_mlb_db, "ALTER TABLE `rawdata_ML` CHANGE `date` `date` DATE NULL DEFAULT NULL")
-            
+                        
             # Tables have been created and adjustments made - adjustments will not need to be made again
             db_table_creation <<- FALSE
         }
