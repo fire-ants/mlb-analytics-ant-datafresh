@@ -201,7 +201,7 @@ datafresh <- function(day) {
 
         #export features of interest, with hv_binary label 1 if <0, else 0
         #var.interest <- joined.classic.pitchedit %>% select(3,5,6,8:13,16,18,22,27:29)
-        var.interest <- joined.classic.pitchedit %>% select(c(des, tfs, tfs_zulu, end_speed, pitch_type, count, zone, pitcher, batter, p_throws, stand, inning_side, hitter_val, hv_binary, ptz))
+        var.interest <- joined.classic.pitchedit %>% select(c(des, tfs, tfs_zulu, date, end_speed, pitch_type, count, zone, pitcher, batter, p_throws, stand, inning_side, hitter_val, hv_binary, ptz))
 
         print("R program running: storing results in database")
 
